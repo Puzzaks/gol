@@ -2,6 +2,8 @@
 ![Play Store Screenshots](assets/bundle_android.jpg)
 Conway's Game of Life app that focuses on UI and optimisation.
 > This app uses default principles of Conway's Game of Life, go check them out on [Wikipedia](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life).
+
+[![PlayStore](assets/PlayStoreButton.png)](https://play.google.com/store/apps/details?id=page.puzzak.gol)[![GitHub](assets/GHButton.png)](https://github.com/Puzzaks/gol/releases)
 ### Features
  - Customizability
  - Optimization
