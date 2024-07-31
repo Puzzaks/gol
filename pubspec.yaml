@@ -1,0 +1,21 @@
+name: gol
+description: "GoL"
+publish_to: 'none'
+version: 1.1.0+2
+
+environment:
+  sdk: '>=3.3.4 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  dynamic_color: ^1.6.9
+  provider: ^6.0.5
+  flutter_colorpicker: ^1.1.0
+  invert_colors: ^0.0.4
+  device_info_plus: ^10.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
