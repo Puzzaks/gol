@@ -87,6 +87,16 @@ class GameOfLifeProvider with ChangeNotifier {
     );
     notifyListeners();
   }
+  void clearGrid() {
+    grid = List.generate(
+      rows,
+          (_) => List.generate(
+        cols,
+            (_) => false,
+      ),
+    );
+    notifyListeners();
+  }
 
   void startGameOfLife() {
     stopGameOfLife();

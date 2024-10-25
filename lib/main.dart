@@ -65,7 +65,7 @@ class HomeScreen extends StatelessWidget {
               showModalBottomSheet<void>(
                 context: context,
                 isScrollControlled: true,
-                // backgroundColor: Theme.of(context).colorScheme.background,
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                 enableDrag: true,
                 showDragHandle: true,
                 useSafeArea: true,
@@ -180,13 +180,12 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   userDrawn?Container():Positioned(
-                    top: 45,
+                    top: 60,
                     left: 15,
                     right: 15,
                     child: Container(
                       width: constraints.maxWidth,
                       child: const Card(
-                        elevation: 2,
                         child: Padding(
                           padding: EdgeInsets.all(15),
                           child: Row(
@@ -396,6 +395,7 @@ class _mainSettingsState extends State<mainSettings> {
               },
             );
             return Scaffold(
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               body: LayoutBuilder(
                 builder: (context, constraints) {
                   return SingleChildScrollView(
@@ -403,9 +403,8 @@ class _mainSettingsState extends State<mainSettings> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: constraints.maxWidth,
+                          width: constraints.maxWidth - 10,
                           child: Card(
-                            elevation: 2,
                             child: Padding(
                               padding: const EdgeInsets.all(15),
                               child: Row(
@@ -443,9 +442,8 @@ class _mainSettingsState extends State<mainSettings> {
                           ),
                         ),
                         Container(
-                          width: constraints.maxWidth,
+                          width: constraints.maxWidth - 10,
                           child: Card(
-                            elevation: 2,
                             child: Column(
                               children: [
                                 Padding(
@@ -534,9 +532,8 @@ class _mainSettingsState extends State<mainSettings> {
                           ),
                         ),
                         Container(
-                          width: constraints.maxWidth,
+                          width: constraints.maxWidth - 10,
                           child: Card(
-                            elevation: 2,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -557,6 +554,7 @@ class _mainSettingsState extends State<mainSettings> {
                                   min: 0,
                                   max: 999,
                                   divisions: 25,
+                                  inactiveColor: Theme.of(context).colorScheme.primaryContainer,
                                   label: "${(1000/(gameProvider.animationSpeed).clamp(1, 1000)).floor() } Max FPS",
                                   onChangeEnd: (value) {
                                     gameProvider.updateAnimationSpeed((1000 - value).toInt());
@@ -568,9 +566,8 @@ class _mainSettingsState extends State<mainSettings> {
                           ),
                         ),
                         Container(
-                          width: constraints.maxWidth,
+                          width: constraints.maxWidth - 10,
                           child: Card(
-                            elevation: 2,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -591,6 +588,7 @@ class _mainSettingsState extends State<mainSettings> {
                                   min: 0,
                                   max: 4,
                                   divisions: 4,
+                                  inactiveColor: Theme.of(context).colorScheme.primaryContainer,
                                   label: "${(gameProvider.borderRadius*25).toInt().toString()}%",
                                   onChanged: (value) {
                                     gameProvider.updateBorderRadius(value);
@@ -602,9 +600,8 @@ class _mainSettingsState extends State<mainSettings> {
                           ),
                         ),
                         Container(
-                          width: constraints.maxWidth,
+                          width: constraints.maxWidth - 10,
                           child: Card(
-                            elevation: 2,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -624,6 +621,7 @@ class _mainSettingsState extends State<mainSettings> {
                                   value: gameProvider.borderThickness,
                                   min: 0,
                                   max: 5,
+                                  inactiveColor: Theme.of(context).colorScheme.primaryContainer,
                                   label: "${gameProvider.borderThickness.toString()}px",
                                   divisions: 10,
                                   onChanged: (value) {
@@ -636,9 +634,8 @@ class _mainSettingsState extends State<mainSettings> {
                           ),
                         ),
                         Container(
-                          width: constraints.maxWidth,
+                          width: constraints.maxWidth - 10,
                           child: Card(
-                            elevation: 2,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -658,6 +655,7 @@ class _mainSettingsState extends State<mainSettings> {
                                   value: gameProvider.scale,
                                   min: 0.5,
                                   max: 5.0,
+                                  inactiveColor: Theme.of(context).colorScheme.primaryContainer,
                                   label: "${gameProvider.scale.toString()}x",
                                   divisions: 9,
                                   onChanged: (value) {
@@ -670,9 +668,8 @@ class _mainSettingsState extends State<mainSettings> {
                           ),
                         ),
                         Container(
-                          width: constraints.maxWidth,
+                          width: constraints.maxWidth - 10,
                           child: Card(
-                            elevation: 2,
                             child: Padding(
                               padding: const EdgeInsets.all(15),
                               child: Row(
@@ -695,7 +692,7 @@ class _mainSettingsState extends State<mainSettings> {
                                   ),
                                   FilledButton(
                                       onPressed: gameProvider.randomizeGrid,
-                                      child: const Text('Randomize')
+                                      child: const Icon(Icons.casino_rounded)
                                   ),
                                 ],
                               ),
@@ -703,7 +700,40 @@ class _mainSettingsState extends State<mainSettings> {
                           ),
                         ),
                         Container(
-                          width: constraints.maxWidth,
+                          width: constraints.maxWidth - 10,
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(15),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Clear Grid",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18
+                                        ),
+                                      ),
+                                      Text(
+                                        "Make grid empty",
+                                      )
+                                    ],
+                                  ),
+                                  FilledButton(
+                                      onPressed: gameProvider.clearGrid,
+                                      child: const Icon(Icons.border_clear_rounded)
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        gameProvider.isPlaying
+                            ? Container(
+                          width: constraints.maxWidth - 10,
                           child: Card(
                             elevation: 2,
                             child: Padding(
@@ -729,7 +759,7 @@ class _mainSettingsState extends State<mainSettings> {
                               ),
                             ),
                           ),
-                        ),
+                        ):Container(),
 
                       ],
                     ),
