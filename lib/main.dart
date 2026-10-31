@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -32,8 +31,8 @@ class HomeScreen extends StatelessWidget {
   bool firstBoot = true;
   bool systemColor = true;
   bool userDrawn = false;
-  static final _defaultLightColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal);
-  static final _defaultDarkColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal, brightness: Brightness.dark);
+  static final ColorScheme _defaultLightColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal);
+  static final ColorScheme _defaultDarkColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.dark);
   final MaterialStateProperty<Icon?> playicon =
   MaterialStateProperty.resolveWith<Icon?>(
         (Set<MaterialState> states) {
@@ -45,16 +44,30 @@ class HomeScreen extends StatelessWidget {
   );
   @override
   Widget build(BuildContext context) {
-    return DynamicColorBuilder(builder: (lightColorScheme, darkColorScheme) {
-      return MaterialApp(
-        theme: ThemeData(
-          colorScheme: lightColorScheme ?? _defaultLightColorScheme,
-          useMaterial3: true,
-        ),
-        darkTheme: ThemeData(
-          colorScheme: darkColorScheme ?? _defaultDarkColorScheme,
-          useMaterial3: true,
-        ),
+    return DynamicColorBuilder(
+        builder: (dynamicLight, dynamicDark) {
+          final lightScheme = dynamicLight != null
+              ? ColorScheme.fromSeed(
+            seedColor: Color(dynamicLight.primary.toARGB32()),
+          )
+              : _defaultLightColorScheme;
+
+          final darkScheme = dynamicDark != null
+              ? ColorScheme.fromSeed(
+            seedColor: Color(dynamicDark.primary.toARGB32()),
+            brightness: Brightness.dark,
+          )
+              : _defaultDarkColorScheme;
+
+          return MaterialApp(
+            theme: ThemeData(
+              colorScheme: lightScheme,
+              useMaterial3: true,
+            ),
+            darkTheme: ThemeData(
+              colorScheme: darkScheme,
+              useMaterial3: true,
+            ),
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: Consumer<GameOfLifeProvider>(
@@ -358,20 +371,34 @@ class _mainSettingsState extends State<mainSettings> {
   );
 
   bool systemColor = true;
-  static final _defaultLightColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal);
-  static final _defaultDarkColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal, brightness: Brightness.dark);
+  final ColorScheme _defaultLightColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal);
+  static final ColorScheme _defaultDarkColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.dark);
   @override
   Widget build(BuildContext context) {
-    return DynamicColorBuilder(builder: (lightColorScheme, darkColorScheme) {
-      return MaterialApp(
-        theme: ThemeData(
-          colorScheme: lightColorScheme ?? _defaultLightColorScheme,
-          useMaterial3: true,
-        ),
-        darkTheme: ThemeData(
-          colorScheme: darkColorScheme ?? _defaultDarkColorScheme,
-          useMaterial3: true,
-        ),
+    return DynamicColorBuilder(
+        builder: (dynamicLight, dynamicDark) {
+          final lightScheme = dynamicLight != null
+              ? ColorScheme.fromSeed(
+            seedColor: Color(dynamicLight.primary.toARGB32()),
+          )
+              : _defaultLightColorScheme;
+
+          final darkScheme = dynamicDark != null
+              ? ColorScheme.fromSeed(
+            seedColor: Color(dynamicDark.primary.toARGB32()),
+            brightness: Brightness.dark,
+          )
+              : _defaultDarkColorScheme;
+
+          return MaterialApp(
+            theme: ThemeData(
+              colorScheme: lightScheme,
+              useMaterial3: true,
+            ),
+            darkTheme: ThemeData(
+              colorScheme: darkScheme,
+              useMaterial3: true,
+            ),
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: Consumer<GameOfLifeProvider>(

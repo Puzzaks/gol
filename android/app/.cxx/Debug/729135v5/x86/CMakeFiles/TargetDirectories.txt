@@ -1,0 +1,2 @@
+C:/Users/Puzzak/StudioProjects/gol/android/app/.cxx/Debug/729135v5/x86/CMakeFiles/edit_cache.dir
+C:/Users/Puzzak/StudioProjects/gol/android/app/.cxx/Debug/729135v5/x86/CMakeFiles/rebuild_cache.dir
