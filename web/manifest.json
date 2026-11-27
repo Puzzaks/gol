@@ -1,11 +1,11 @@
 {
-    "name": "gol",
-    "short_name": "gol",
+    "name": "Game of Life",
+    "short_name": "Game of Life",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0A0E14",
+    "theme_color": "#009688",
+    "description": "Interactive Conway's Game of Life simulator with Material 3 Expressive UI.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

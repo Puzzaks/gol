@@ -1,3 +1,8 @@
+## Update 1.3.3 `WEB`
+#### Changes
+- Generated Web favicon and PWA icons (`192px`, `512px`, and maskable variants) from the Android monochrome adaptive icon on `#009688`.
+- Updated `web/manifest.json` with app title, description, `#009688` theme color, and `#0A0E14` background color.
+
 ## Update 1.3.2 `FIX`
 #### Fixes
 - Wired Pattern Explorer to `engine.allPatterns` (`catalogPatterns` + `customPatterns`) so all 42 LifeWiki patterns—including **Puffers & Mega**, discoverer attributions, and LifeWiki links—appear instead of the 21-pattern fallback.
