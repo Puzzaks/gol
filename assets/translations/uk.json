@@ -93,5 +93,9 @@
   "shared_preview_loaded": "Спільний шаблон завантажено",
   "shared_preview_save": "Зберегти",
   "shared_preview_saved": "Шаблон збережено до бібліотеки",
-  "empty_board_share": "Поле порожнє — намалюйте щось, щоб поділитися"
+  "empty_board_share": "Поле порожнє — намалюйте щось, щоб поділитися",
+  "lifewiki_credit_title": "Каталог патернів та автори",
+  "lifewiki_credit_body": "Класичні та складні патерни вказані з авторством першовідкривачів і задокументовані на LifeWiki (conwaylife.com) за ліцензією CC BY-SA / GFDL.",
+  "lifewiki_visit_cta": "Відкрити conwaylife.com",
+  "pattern_by_author": "Від {author}"
 }

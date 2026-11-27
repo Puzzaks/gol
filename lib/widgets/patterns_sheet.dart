@@ -514,35 +514,51 @@ class _PatternsSheetContentState extends State<_PatternsSheetContent> {
               const Divider(height: 1),
               Expanded(
                 child: patterns.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            'No patterns in this category yet.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(color: scheme.onSurfaceVariant),
-                          ),
+                    ? ListView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
+                        children: <Widget>[
+                          Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Center(
+                              child: Text(
+                                'No patterns in this category yet.',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: scheme.onSurfaceVariant),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _LifeWikiAttributionCard(engine: engine),
+                        ],
                       )
                     : ListView.separated(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
                         ),
-                        itemCount: patterns.length,
+                        itemCount: patterns.length + 1,
                         separatorBuilder: (_, __) => const SizedBox(height: 4),
                         itemBuilder: (BuildContext context, int index) {
+                          if (index == patterns.length) {
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8, bottom: 4),
+                              child: _LifeWikiAttributionCard(engine: engine),
+                            );
+                          }
                           final GolPattern pattern = patterns[index];
                           final String sizeMeta = pattern.period != null
                               ? '${pattern.width}×${pattern.height} · p${pattern.period}'
                               : '${pattern.width}×${pattern.height}';
                           final String? author = pattern.author?.trim();
-                          final String meta = (author != null &&
-                                  author.isNotEmpty)
-                              ? '$sizeMeta · $author'
-                              : sizeMeta;
+                          final String meta =
+                              (author != null && author.isNotEmpty)
+                                  ? '$sizeMeta · ${_trOr(engine, 'pattern_by_author', 'By {author}').replaceAll('{author}', author)}'
+                                  : sizeMeta;
                           final String? wikiUrl = pattern.wikiUrl?.trim();
                           final bool hasWiki =
                               wikiUrl != null && wikiUrl.isNotEmpty;
@@ -809,4 +825,66 @@ class _MiniGridPainter extends CustomPainter {
       oldDelegate.width != width ||
       oldDelegate.height != height ||
       oldDelegate.aliveColor != aliveColor;
+}
+
+class _LifeWikiAttributionCard extends StatelessWidget {
+  final GolEngine engine;
+
+  const _LifeWikiAttributionCard({required this.engine});
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final TextTheme textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.7),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            _trOr(
+              engine,
+              'lifewiki_credit_title',
+              'Pattern Catalog & Discoverers',
+            ),
+            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _trOr(
+              engine,
+              'lifewiki_credit_body',
+              'Classic & heavy patterns are attributed to their original discoverers and documented on LifeWiki (conwaylife.com) under CC BY-SA / GFDL.',
+            ),
+            style: textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: FilledButton.tonalIcon(
+              onPressed: () => launchUrl(
+                Uri.parse('https://conwaylife.com/wiki/Main_Page'),
+                mode: LaunchMode.externalApplication,
+              ),
+              icon: const Icon(Icons.public_rounded, size: 18),
+              label: Text(
+                _trOr(engine, 'lifewiki_visit_cta', 'Visit conwaylife.com'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

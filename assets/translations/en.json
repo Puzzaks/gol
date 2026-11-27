@@ -93,5 +93,9 @@
   "shared_preview_loaded": "Shared pattern loaded",
   "shared_preview_save": "Save",
   "shared_preview_saved": "Pattern saved to library",
-  "empty_board_share": "Board is empty — draw something to share"
+  "empty_board_share": "Board is empty — draw something to share",
+  "lifewiki_credit_title": "Pattern Catalog & Discoverers",
+  "lifewiki_credit_body": "Classic & heavy patterns are attributed to their original discoverers and documented on LifeWiki (conwaylife.com) under CC BY-SA / GFDL.",
+  "lifewiki_visit_cta": "Visit conwaylife.com",
+  "pattern_by_author": "By {author}"
 }

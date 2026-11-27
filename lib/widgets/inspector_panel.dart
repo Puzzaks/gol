@@ -366,6 +366,26 @@ class _InspectorHubPage extends StatelessWidget {
                 repo: 'gol',
               ),
             ),
+            CardContents.tapIcon(
+              title: _trOr(
+                engine,
+                'lifewiki_link_title',
+                'LifeWiki (conwaylife.com)',
+              ),
+              subtitle: _trOr(
+                engine,
+                'lifewiki_link_sub',
+                'Pattern catalog & discoverer credits · Visit conwaylife.com',
+              ),
+              icon: Icons.public_rounded,
+              color: scheme.onSecondaryContainer,
+              colorBG: scheme.secondaryContainer,
+              trailing: const Icon(Icons.open_in_new_rounded, size: 20),
+              action: () => launchUrl(
+                Uri.parse('https://conwaylife.com/wiki/Main_Page'),
+                mode: LaunchMode.externalApplication,
+              ),
+            ),
             GestureDetector(
               onLongPress: () async {
                 if (engine.hapticsEnabled) {

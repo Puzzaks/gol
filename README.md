@@ -30,6 +30,7 @@ An interactive, high-performance cellular automaton simulator built with Flutter
 ---
 
 ### Credits
+- Pattern catalog, RLE definitions, and original discoverer attributions are sourced from [LifeWiki](https://conwaylife.com/wiki/Main_Page) under CC BY-SA / GFDL — explore thousands more patterns at [conwaylife.com](https://conwaylife.com/wiki/Main_Page).
 - Built with [Flutter](https://flutter.dev/) and the `m3x` Material 3 Expressive design system.
 - Assisted by [Google Antigravity](https://antigravity.google/).
 - And to Armed forces of Ukraine for keeping me safe. [Stand with Ukraine](https://war.ukraine.ua/support-ukraine/)!

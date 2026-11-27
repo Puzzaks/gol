@@ -1,3 +1,10 @@
+## Update 1.3.1 `RELEASE`
+#### Changes
+- Added explicit LifeWiki (`conwaylife.com`) & pattern discoverer attribution with a direct **Visit conwaylife.com** CTA in the Pattern Library and About / Credits.
+- Linked the `conwaylife.com` hub across the app and README for exploring additional Game of Life patterns.
+#### Miscellaneous
+- Prepared `1.3.1+26112704` release metadata for Google Play Store and GitHub Releases.
+
 ## Update 1.3.0 `EXPLORER`
 #### Changes
 - Added the LifeWiki Pattern Explorer with 30+ curated patterns (`assets/patterns/catalog.json`) including heavy stress-test guns and puffers.
