@@ -147,10 +147,7 @@ class _PatternsSheetContentState extends State<_PatternsSheetContent> {
   }
 
   List<GolPattern> _filteredPatterns(GolEngine engine) {
-    final List<GolPattern> all = <GolPattern>[
-      ...engine.customPatterns,
-      ...engine.builtInPatterns,
-    ];
+    final List<GolPattern> all = engine.allPatterns;
     final List<GolPattern> byCategory = switch (_filter) {
       _PatternFilter.all => all,
       _PatternFilter.saved => engine.customPatterns,

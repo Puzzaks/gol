@@ -1,3 +1,8 @@
+## Update 1.3.2 `FIX`
+#### Fixes
+- Wired Pattern Explorer to `engine.allPatterns` (`catalogPatterns` + `customPatterns`) so all 42 LifeWiki patterns—including **Puffers & Mega**, discoverer attributions, and LifeWiki links—appear instead of the 21-pattern fallback.
+- Made framed viewport outer margins symmetric (`12dp` on all sides) and added a subtle `outlineVariant` frame border for crisp edges on dark desktop/web displays.
+
 ## Update 1.3.1 `RELEASE`
 #### Changes
 - Added explicit LifeWiki (`conwaylife.com`) & pattern discoverer attribution with a direct **Visit conwaylife.com** CTA in the Pattern Library and About / Credits.

@@ -402,9 +402,9 @@ class _GolExplorerPageState extends State<GolExplorerPage> {
                 ? EdgeInsets.zero
                 : EdgeInsets.fromLTRB(
                     mediaPadding.left + 12,
-                    mediaPadding.top + 8,
+                    mediaPadding.top + 12,
                     mediaPadding.right + 12,
-                    mediaPadding.bottom + 10,
+                    mediaPadding.bottom + 12,
                   );
             final double innerWidth =
                 (constraints.maxWidth - outerPadding.horizontal)
@@ -418,10 +418,21 @@ class _GolExplorerPageState extends State<GolExplorerPage> {
               duration: _layoutAnimDuration,
               curve: _layoutAnimCurve,
               builder: (BuildContext context, double radius, Widget? child) {
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(radius),
-                  clipBehavior: Clip.antiAlias,
-                  child: child,
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(radius),
+                    border: isFullscreen
+                        ? null
+                        : Border.all(
+                            color: scheme.outlineVariant.withValues(alpha: 0.35),
+                            width: 1.0,
+                          ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(radius),
+                    clipBehavior: Clip.antiAlias,
+                    child: child,
+                  ),
                 );
               },
               child: DecoratedBox(
