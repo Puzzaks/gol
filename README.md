@@ -1,27 +1,35 @@
-# Conway's Game of Life
-![Play Store Screenshots](assets/bundle_android.jpg)
-Conway's Game of Life app that focuses on UI and optimisation.
-> This app uses default principles of Conway's Game of Life, go check them out on [Wikipedia](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life).
+<div align="center">
+<h1>Golr</h1>
+<h3>Conway's Game of Life — Material 3 Expressive</h3>
+An interactive, high-performance cellular automaton simulator built with Flutter and <code>m3x</code>.<br><br>
+<a href="https://play.google.com/store/apps/details?id=page.puzzak.gol"><img src="https://img.shields.io/badge/Google_Play-Golr-414141?style=flat-square&logo=google-play&logoColor=white" height="20" alt="Google Play"></a>
+<a href="https://github.com/Puzzaks/gol/releases"><img src="https://img.shields.io/github/v/release/Puzzaks/gol?style=flat-square&label=Release" height="20" alt="GitHub Release"></a>
+<img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter&logoColor=white" height="20" alt="Flutter">
+<img src="https://img.shields.io/badge/Material_3-Expressive-6750A4?style=flat-square" height="20" alt="Material 3 Expressive">
+</div>
 
-[![PlayStore](assets/PlayStoreButton.png)](https://play.google.com/store/apps/details?id=page.puzzak.gol)[![GitHub](assets/GHButton.png)](https://github.com/Puzzaks/gol/releases)
+> *"The Game of Life is not your typical computer game. It is a cellular automaton, and was invented by Cambridge mathematician John Conway."* — [Wikipedia](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
+
+---
+
 ### Features
- - Customizability
- - Optimization
- - Adaptibility
- - Colorfulness
- - Interactivity
+ - **Infinite, Toroidal & Bounded Engine**: Dual-backend simulation supporting an unbounded sparse 16×16 chunk universe alongside double-buffered toroidal and bounded finite grids, with outer-totalistic `B/S` rule presets (Conway, HighLife, Day & Night, Seeds, Life Without Death, Maze, Anneal) and custom rule notation.
+ - **Pinch-to-Zoom & Precision Canvas Tools**: Smooth focal-point pinch-to-zoom and two-finger panning paired with dedicated Draw, Pan, Stamp (with 90° rotation and horizontal flip), and Crop-to-RLE tools, plus 30-step undo/redo history.
+ - **Wikipedia Pattern Library & Conway RLE**: 20+ built-in still lifes, oscillators, spaceships, methuselahs, and glider guns, full Conway RLE and plaintext `.cells` import/export, and persistent custom pattern saving.
+ - **Material 3 Expressive (`m3x`) Adaptive UI**: 3-state responsive layout tailored for compact phones, medium tablets, and expanded desktop windows, featuring dynamic Material You theming, 7 curated palettes with cell-age shading, haptic feedback, and English / Ukrainian localization.
 
-#### Customizability
-The app is built to allow users change cell display in any way they want: add or remove borders between cells, make corners of the cells rounded and change colors of both live and dead cells. Users also can select delay between grid updates, thus allowing for speed controls.
-#### Optimization
-The app is optimised to run well on any device, with option to scale down cells to make a larger grid (which is a resource-heavy task to render). It has separate generator, that generates grid on-demand as a two-dimentional array of dead or alive cells. It allows for on-the-fly changes of grid size.
-Generated frames are not displayed as an image, rather are drawn on a grid that allows for interactions and easy cell style adjustments. Generation runs as a asynchronous process which allows UI to be lag-free and to apply visual changes very fast.
-#### Adaptibility
-App can run on Android, ChromeOS, Windows and any other supported by Flutter platform. Platforms like web are not tested, but anyone can use this repository to build it on any platform. The app works fine with both touch controls and mouse.
-#### Colorfulness
-If the device supports custom theming (Android 12+ and latest Chrome OS), then you can select to color cells using device accent colors and UI inherits theme and color of the device to make experiense seamless.
-#### Interactivity
-Using mouse pointer or touch controls, users can "draw" on a grid, selecing cells to change their state. This allows for possibilities to draw something as a pixel art and make patterns, such as spaceships and oscillators.
-### More screenshots
-![Play Store Screenshots](assets/bundle_chrome.jpg)
-![Play Store Screenshots](assets/bundle_tablet.jpg)
+### Screenshots
+![Play Store Screenshots](assets/bundle_android.jpg)
+
+### Resources
+- [Full history](CHANGELOG.md)
+- [Future plans](ROADMAP.md)
+- [Google Play Store](https://play.google.com/store/apps/details?id=page.puzzak.gol)
+- [GitHub Releases](https://github.com/Puzzaks/gol/releases)
+
+---
+
+### Credits
+- Built with [Flutter](https://flutter.dev/) and the `m3x` Material 3 Expressive design system.
+- Assisted by [Google Antigravity](https://antigravity.google/).
+- And to Armed forces of Ukraine for keeping me safe. [Stand with Ukraine](https://war.ukraine.ua/support-ukraine/)!

@@ -1,0 +1,403 @@
+[
+  {
+    "id": "block",
+    "name": "Block",
+    "category": "stillLife",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Block",
+    "description": "The smallest and most common 4-cell still life in Conway's Game of Life.",
+    "rle": "x = 2, y = 2, rule = B3/S23\n2o$2o!"
+  },
+  {
+    "id": "beehive",
+    "name": "Bee-hive",
+    "category": "stillLife",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Beehive",
+    "description": "A common 6-cell hexagonal still life frequently produced from random soups.",
+    "rle": "x = 4, y = 3, rule = B3/S23\nb2o$o2bo$b2o!"
+  },
+  {
+    "id": "loaf",
+    "name": "Loaf",
+    "category": "stillLife",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Loaf",
+    "description": "A 7-cell still life resembling a loaf of bread, the third most common still life.",
+    "rle": "x = 4, y = 4, rule = B3/S23\nb2o$o2bo$bobo$2bo!"
+  },
+  {
+    "id": "boat",
+    "name": "Boat",
+    "category": "stillLife",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Boat",
+    "description": "The only 5-cell still life in Conway's Game of Life.",
+    "rle": "x = 3, y = 3, rule = B3/S23\n2o$obo$bo!"
+  },
+  {
+    "id": "tub",
+    "name": "Tub",
+    "category": "stillLife",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Tub",
+    "description": "A symmetric 4-cell still life forming a hollow diamond shape.",
+    "rle": "x = 3, y = 3, rule = B3/S23\nbo$obo$bo!"
+  },
+  {
+    "id": "ship",
+    "name": "Ship",
+    "category": "stillLife",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Ship",
+    "description": "A 6-cell still life closely related to the boat with an extra corner cell.",
+    "rle": "x = 3, y = 3, rule = B3/S23\n2o$obo$b2o!"
+  },
+  {
+    "id": "pond",
+    "name": "Pond",
+    "category": "stillLife",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Pond",
+    "description": "An 8-cell still life with fourfold rotational symmetry.",
+    "rle": "x = 4, y = 4, rule = B3/S23\nb2o$o2bo$o2bo$b2o!"
+  },
+  {
+    "id": "eater_1",
+    "name": "Eater 1",
+    "category": "stillLife",
+    "author": "Bill Gosper",
+    "wikiUrl": "https://conwaylife.com/wiki/Eater_1",
+    "description": "A 7-cell still life capable of absorbing gliders and other small patterns without permanent damage.",
+    "rle": "x = 4, y = 4, rule = B3/S23\n2o$o$b3o$3bo!"
+  },
+  {
+    "id": "blinker",
+    "name": "Blinker",
+    "category": "oscillator",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Blinker",
+    "period": 2,
+    "description": "The smallest and most common oscillator, alternating between a horizontal and vertical line of three cells.",
+    "rle": "x = 3, y = 1, rule = B3/S23\n3o!"
+  },
+  {
+    "id": "toad",
+    "name": "Toad",
+    "category": "oscillator",
+    "author": "Simon Norton",
+    "wikiUrl": "https://conwaylife.com/wiki/Toad",
+    "period": 2,
+    "description": "A compact 6-cell period-2 oscillator discovered in 1970.",
+    "rle": "x = 4, y = 2, rule = B3/S23\nb3o$3o!"
+  },
+  {
+    "id": "beacon",
+    "name": "Beacon",
+    "category": "oscillator",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Beacon",
+    "period": 2,
+    "description": "A period-2 oscillator consisting of two diagonally touching blocks that repeatedly flash.",
+    "rle": "x = 4, y = 4, rule = B3/S23\n2o$2o$2b2o$2b2o!"
+  },
+  {
+    "id": "clock",
+    "name": "Clock",
+    "category": "oscillator",
+    "author": "Simon Norton",
+    "wikiUrl": "https://conwaylife.com/wiki/Clock",
+    "period": 2,
+    "description": "A 6-cell period-2 oscillator whose two central cells rotate back and forth like clock hands.",
+    "rle": "x = 4, y = 4, rule = B3/S23\n2bo$obo$bobo$bo!"
+  },
+  {
+    "id": "pulsar",
+    "name": "Pulsar",
+    "category": "oscillator",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Pulsar",
+    "period": 3,
+    "description": "The most common period-3 oscillator, featuring fourfold symmetry and 48 initial cells.",
+    "rle": "x = 13, y = 13, rule = B3/S23\n2b3o3b3o2$o4bobo4bo$o4bobo4bo$o4bobo4bo$2b3o3b3o2$2b3o3b3o$o4bobo4bo$o4bobo4bo$o4bobo4bo2$2b3o3b3o!"
+  },
+  {
+    "id": "octagon_2",
+    "name": "Octagon 2",
+    "category": "oscillator",
+    "author": "Sol Goodman & Arthur Taber",
+    "wikiUrl": "https://conwaylife.com/wiki/Octagon_2",
+    "period": 5,
+    "description": "The first known period-5 oscillator, discovered independently in 1971.",
+    "rle": "x = 8, y = 8, rule = B3/S23\n3b2o$2bo2bo$bo4bo$o6bo$o6bo$bo4bo$2bo2bo$3b2o!"
+  },
+  {
+    "id": "figure_eight",
+    "name": "Figure Eight",
+    "category": "oscillator",
+    "author": "Simon Norton",
+    "wikiUrl": "https://conwaylife.com/wiki/Figure_eight",
+    "period": 8,
+    "description": "A period-8 oscillator formed by two 3x3 blocks placed diagonally corner-to-corner.",
+    "rle": "x = 6, y = 6, rule = B3/S23\n3o$3o$3o$3b3o$3b3o$3b3o!"
+  },
+  {
+    "id": "koks_galaxy",
+    "name": "Kok's Galaxy",
+    "category": "oscillator",
+    "author": "Jan Kok",
+    "wikiUrl": "https://conwaylife.com/wiki/Kok%27s_galaxy",
+    "period": 8,
+    "description": "A classic period-8 pinwheel oscillator discovered in 1971 and used as Golly's icon.",
+    "rle": "x = 9, y = 9, rule = B3/S23\n2bo2bobob$2obob3ob$bo6bo$2o5bob2$bo5b2o$o6bob$b3obob2o$bobo2bo!"
+  },
+  {
+    "id": "pentadecathlon",
+    "name": "Penta-decathlon",
+    "category": "oscillator",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Pentadecathlon",
+    "period": 15,
+    "description": "A period-15 oscillator that evolves from a single 10-cell row and is widely used as a glider reflector.",
+    "rle": "x = 10, y = 3, rule = B3/S23\n2bo4bo$2ob4ob2o$2bo4bo!"
+  },
+  {
+    "id": "queen_bee_shuttle",
+    "name": "Queen Bee Shuttle",
+    "category": "oscillator",
+    "author": "Bill Gosper",
+    "wikiUrl": "https://conwaylife.com/wiki/Queen_bee_shuttle",
+    "period": 30,
+    "description": "A period-30 shuttle oscillator where a queen bee bounces between two stabilizing blocks.",
+    "rle": "x = 22, y = 9, rule = B3/S23\n9bo$7bobo$6bobo$2o3bo2bo$2o4bobo$7bobo8b2o$9bo8bobo$20bo$20b2o!"
+  },
+  {
+    "id": "twin_bees_shuttle",
+    "name": "Twin Bees Shuttle",
+    "category": "oscillator",
+    "author": "Bill Gosper",
+    "wikiUrl": "https://conwaylife.com/wiki/Twin_bees_shuttle",
+    "period": 46,
+    "description": "A period-46 oscillator with two mirrored queen bees bouncing between stabilizing blocks.",
+    "rle": "x = 29, y = 11, rule = B3/S23\n17b2o$2o15bobo7b2o$2o17bo7b2o$17b3o4$17b3o$2o17bo$2o15bobo$17b2o!"
+  },
+  {
+    "id": "glider",
+    "name": "Glider",
+    "category": "spaceship",
+    "author": "Richard Guy",
+    "wikiUrl": "https://conwaylife.com/wiki/Glider",
+    "period": 4,
+    "description": "The smallest and most famous diagonal spaceship, traveling at c/4.",
+    "rle": "x = 3, y = 3, rule = B3/S23\nbo$2bo$3o!"
+  },
+  {
+    "id": "lwss",
+    "name": "Lightweight Spaceship (LWSS)",
+    "category": "spaceship",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Lightweight_spaceship",
+    "period": 4,
+    "description": "The smallest orthogonal spaceship, moving horizontally at c/2.",
+    "rle": "x = 5, y = 4, rule = B3/S23\nbo2bo$o$o3bo$4o!"
+  },
+  {
+    "id": "mwss",
+    "name": "Middleweight Spaceship (MWSS)",
+    "category": "spaceship",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Middleweight_spaceship",
+    "period": 4,
+    "description": "An 11-cell orthogonal c/2 spaceship slightly larger than the LWSS.",
+    "rle": "x = 6, y = 5, rule = B3/S23\n2bo$o3bo$5bo$o4bo$b5o!"
+  },
+  {
+    "id": "hwss",
+    "name": "Heavyweight Spaceship (HWSS)",
+    "category": "spaceship",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Heavyweight_spaceship",
+    "period": 4,
+    "description": "A 13-cell orthogonal c/2 spaceship, the largest of the standard Conway spaceships.",
+    "rle": "x = 7, y = 5, rule = B3/S23\n2b2o$o4bo$6bo$o5bo$b6o!"
+  },
+  {
+    "id": "loafer",
+    "name": "Loafer",
+    "category": "spaceship",
+    "author": "Josh Ball",
+    "wikiUrl": "https://conwaylife.com/wiki/Loafer",
+    "period": 7,
+    "description": "A small 21-cell orthogonal spaceship traveling at c/7 discovered in 2013.",
+    "rle": "x = 9, y = 9, rule = B3/S23\n2o2b2o$2o3bob2o$bo3bobo$6bo$bo$b2o$o2bo$obo$bo!"
+  },
+  {
+    "id": "copperhead",
+    "name": "Copperhead",
+    "category": "spaceship",
+    "author": "zdr",
+    "wikiUrl": "https://conwaylife.com/wiki/Copperhead",
+    "period": 10,
+    "description": "A symmetric 28-cell orthogonal c/10 spaceship discovered in 2016.",
+    "rle": "x = 8, y = 12, rule = B3/S23\nb2o2b2o$3b2o$3b2o$obo2bobo$o6bo2$o6bo$b2o2b2o$2b4o2$3b2o$3b2o!"
+  },
+  {
+    "id": "coe_ship",
+    "name": "Coe Ship",
+    "category": "spaceship",
+    "author": "Tim Coe",
+    "wikiUrl": "https://conwaylife.com/wiki/Coe_ship",
+    "period": 16,
+    "description": "A 28-cell orthogonal c/2 spaceship discovered in 1995 based on a puffer engine.",
+    "rle": "x = 10, y = 9, rule = B3/S23\n4b6o$2b2o5bo$2obo5bo$4bo3bo$6bo$6b2o$5b4o$5b2ob2o$7b2o!"
+  },
+  {
+    "id": "r_pentomino",
+    "name": "R-pentomino",
+    "category": "methuselah",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/R-pentomino",
+    "description": "A 5-cell methuselah that evolves chaotically for 1,103 generations before stabilizing.",
+    "rle": "x = 3, y = 3, rule = B3/S23\nb2o$2o$bo!"
+  },
+  {
+    "id": "pi_heptomino",
+    "name": "Pi-heptomino",
+    "category": "methuselah",
+    "author": "John Conway",
+    "wikiUrl": "https://conwaylife.com/wiki/Pi-heptomino",
+    "description": "A 7-cell methuselah shaped like the Greek letter pi that settles after 173 generations.",
+    "rle": "x = 3, y = 3, rule = B3/S23\n3o$obo$obo!"
+  },
+  {
+    "id": "diehard",
+    "name": "Diehard",
+    "category": "methuselah",
+    "author": "Unknown",
+    "wikiUrl": "https://conwaylife.com/wiki/Diehard",
+    "description": "A 7-cell methuselah that evolves for 130 generations and then vanishes completely.",
+    "rle": "x = 8, y = 3, rule = B3/S23\n6bo$2o$bo3b3o!"
+  },
+  {
+    "id": "acorn",
+    "name": "Acorn",
+    "category": "methuselah",
+    "author": "Charles Corderman",
+    "wikiUrl": "https://conwaylife.com/wiki/Acorn",
+    "description": "A 7-cell methuselah that runs for 5,206 generations and produces 633 cells of ash.",
+    "rle": "x = 7, y = 3, rule = B3/S23\nbo$3bo$2o2b3o!"
+  },
+  {
+    "id": "rabbits",
+    "name": "Rabbits",
+    "category": "methuselah",
+    "author": "Andrew Trevorrow",
+    "wikiUrl": "https://conwaylife.com/wiki/Rabbits",
+    "description": "A 9-cell methuselah that takes 17,331 generations to stabilize.",
+    "rle": "x = 7, y = 3, rule = B3/S23\no3b3o$3o2bo$bo!"
+  },
+  {
+    "id": "lidka",
+    "name": "Lidka",
+    "category": "methuselah",
+    "author": "Andrzej Okrasinski",
+    "wikiUrl": "https://conwaylife.com/wiki/Lidka",
+    "description": "A long-lived methuselah that evolves for over 29,000 generations before stabilizing.",
+    "rle": "x = 9, y = 15, rule = B3/S23\n3bo$2b3o$2bob2o3$2o$b2o6$7b2o$2o5bo$b2o!"
+  },
+  {
+    "id": "gosper_glider_gun",
+    "name": "Gosper Glider Gun",
+    "category": "gun",
+    "author": "Bill Gosper",
+    "wikiUrl": "https://conwaylife.com/wiki/Gosper_glider_gun",
+    "period": 30,
+    "description": "The first known finite pattern with unbounded growth, emitting a glider every 30 generations.",
+    "rle": "x = 36, y = 9, rule = B3/S23\n24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4bobo$10bo5bo7bo$11bo3bo$12b2o!"
+  },
+  {
+    "id": "bi_gun",
+    "name": "Bi-gun",
+    "category": "gun",
+    "author": "Bill Gosper",
+    "wikiUrl": "https://conwaylife.com/wiki/Bi-gun",
+    "period": 46,
+    "description": "A period-46 double-barreled glider gun built from two colliding queen bees.",
+    "rle": "x = 50, y = 15, rule = B3/S23\n24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2b2o8bo5bo3bo$2b2o8bo3bob2o4bo$10bo5bo7bo$11bo3bo$12b2o$15bo$14bobo$14bo$13b2o!"
+  },
+  {
+    "id": "simkin_glider_gun",
+    "name": "Simkin Glider Gun",
+    "category": "gun",
+    "author": "Michael Simkin",
+    "wikiUrl": "https://conwaylife.com/wiki/Simkin_glider_gun",
+    "period": 120,
+    "description": "A Herschel-based period-120 glider gun discovered in 2015.",
+    "rle": "x = 33, y = 21, rule = B3/S23\n24bo$22bobo$12b2ob3o5bo$11bo2bo2bo4bobo$2o9bo3bo7bo$2o9bo3bo$21bo$12bo8bo$11bobo$11bobo$12bo3b2o$14b2ob2o$14bo$15bobo$17bo$9b3o$9bo$10bo3bo$14bo3bo$14b2ob2o$15bo!"
+  },
+  {
+    "id": "lwss_gun",
+    "name": "LWSS Gun",
+    "category": "gun",
+    "author": "Bill Gosper",
+    "wikiUrl": "https://conwaylife.com/wiki/LWSS_gun",
+    "period": 30,
+    "description": "A glider-synthesis gun that continuously produces lightweight spaceships.",
+    "rle": "x = 40, y = 42, rule = B3/S23\n23b2o$23bo$17b2ob2obo$15bo2bobobo$15b2o4bo13bo$33b3o$32bo$25bo6b2o$25b2o$12b2o5bo3bo$11bobo3bo7b4o2b2o$10bo10bo3b2ob2ob2o$9bo11bo3b2obo$9b2o4bobo3bo3b3o$16bo9bo$3b2o15b3o$4bo15b3o$2bo18bo$2b2o2$2b2o7bo5b2o$2bobo12b2o17b4o$3bo5bo7b3o15bo3bo$3o5b2o7b2o20bo$o6b2o26bo2bo$6bo4bo$11bo12b3o$5bo17bo3bo$5b2o2bo12bo5bo$21bo3bo3bo$21bo7bo5b2o$10b2o9bobo3bobo5b2o$6b2o2b2o5b2o3b2o3b2o$5b2o2bo3b2o5bobo$6bo3bo4bo$7bo2bo3b3o$10b2o$10bo$10b2o$12bo$11bo$11b2o!"
+  },
+  {
+    "id": "switch_engine",
+    "name": "Switch Engine",
+    "category": "puffer",
+    "author": "Charles Corderman",
+    "wikiUrl": "https://conwaylife.com/wiki/Switch_engine",
+    "description": "An 8-cell diagonal puffer precursor that travels at c/12 and leaves behind trails of blocks or gliders.",
+    "rle": "x = 6, y = 4, rule = B3/S23\n4bo$4b2o$2ob2o$o!"
+  },
+  {
+    "id": "puffer_1",
+    "name": "Puffer 1",
+    "category": "puffer",
+    "author": "Bill Gosper",
+    "wikiUrl": "https://conwaylife.com/wiki/Puffer_1",
+    "period": 128,
+    "description": "The first known puffer train, moving orthogonally at c/2 while leaving behind blinkers and bookends.",
+    "rle": "x = 27, y = 7, rule = B3/S23\nb3o6bo5bo6b3o$o2bo5b3o3b3o5bo2bo$3bo4b2obo3bob2o4bo$3bo19bo$3bo2bo13bo2bo$3bo2b2o11b2o2bo$2bo3b2o11b2o3bo!"
+  },
+  {
+    "id": "noahs_ark",
+    "name": "Noah's Ark",
+    "category": "puffer",
+    "author": "Charles Corderman",
+    "wikiUrl": "https://conwaylife.com/wiki/Noah%27s_ark",
+    "description": "A diagonal puffer made of two switch engines that leaves a diverse menagerie of debris in its wake.",
+    "rle": "x = 15, y = 15, rule = B3/S23\n10bobo$9bo$10bo2bo$12b3o5$bo$obo$o2bo$2b2o$3bo!"
+  },
+  {
+    "id": "ten_cell_infinite_growth",
+    "name": "10-cell Infinite Growth",
+    "category": "puffer",
+    "author": "Paul Callahan",
+    "wikiUrl": "https://conwaylife.com/wiki/10-cell_infinite_growth",
+    "description": "One of the smallest possible infinite-growth patterns, evolving into a block-laying switch engine from just 10 cells.",
+    "rle": "x = 8, y = 6, rule = B3/S23\n6bo$4bob2o$4bobo$4bo$2bo$obo!"
+  },
+  {
+    "id": "five_by_five_infinite_growth",
+    "name": "5x5 Infinite Growth",
+    "category": "puffer",
+    "author": "Paul Callahan",
+    "wikiUrl": "https://conwaylife.com/wiki/5x5_infinite_growth",
+    "description": "The unique 13-cell pattern fitting inside a 5x5 bounding box that exhibits infinite growth.",
+    "rle": "x = 5, y = 5, rule = B3/S23\n3obo$o$3b2o$b2obo$obobo!"
+  },
+  {
+    "id": "max_spacefiller",
+    "name": "Max Spacefiller",
+    "category": "puffer",
+    "author": "Tim Coe",
+    "wikiUrl": "https://conwaylife.com/wiki/Max",
+    "description": "The smallest known spacefiller, expanding quadratically at c/2 in all directions with zebra-stripe agar.",
+    "rle": "x = 27, y = 27, rule = B3/S23\n18bo8b$17b3o7b$12b3o4b2o6b$11bo2b3o2bob2o4b$10bo3bobo2bobo5b$10bo4bobobobob2o2b$12bo4bobo3b2o2b$4o5bobo4bo3bob3o2b$o3b2obob3ob2o9b2ob$o5b2o5bo13b$bo2b2obo2bo2bob2o10b$7bobobobobobo5b4o$bo2b2obo2bo2bo2b2obob2o3bo$o5b2o3bobobo3b2o5bo$o3b2obob2o2bo2bo2bob2o2bob$4o5bobobobobobo7b$10b2obo2bo2bob2o2bob$13bo5b2o5bo$b2o9b2ob3obob2o3bo$2b3obo3bo4bobo5b4o$2b2o3bobo4bo12b$2b2obobobobo4bo10b$5bobo2bobo3bo10b$4b2obo2b3o2bo11b$6b2o4b3o12b$7b3o17b$8bo!"
+  }
+]

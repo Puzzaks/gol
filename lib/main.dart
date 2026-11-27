@@ -1,226 +1,655 @@
-import 'dart:io';
+import 'dart:async';
+import 'dart:math' as math;
 
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:invert_colors/invert_colors.dart';
+import 'package:m3x_ui/m3x_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // Ensure you have this package in your pubspec.yaml
-import 'generator.dart';
-import 'package:collection/collection.dart' as c;
+
+import 'engine/gol_engine.dart';
+import 'engine/gol_models.dart';
+import 'engine/gol_share_link.dart';
+import 'engine/rle_codec.dart';
+import 'widgets/app_toast.dart';
+import 'widgets/gol_canvas.dart';
+import 'widgets/hud_overlay.dart';
+import 'widgets/inspector_panel.dart';
+import 'widgets/patterns_sheet.dart';
+import 'widgets/share_sheet.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(
-    ChangeNotifierProvider(
-      create: (context) => GameOfLifeProvider(),
-      child: MyApp(),
-    ),
-  );
+  runApp(const GolApp());
 }
 
-class MyApp extends StatelessWidget {
+/// Root Material 3 eXtended application widget for Golr.
+///
+/// Accepts an optional pre-configured [engine] for deterministic widget tests;
+/// in production, creates, initializes, and disposes its own [GolEngine].
+class GolApp extends StatefulWidget {
+  final GolEngine? engine;
+
+  const GolApp({
+    super.key,
+    this.engine,
+  });
+
+  @override
+  State<GolApp> createState() => _GolAppState();
+}
+
+class _GolAppState extends State<GolApp> {
+  static final ColorScheme _fallbackLightScheme =
+      ColorScheme.fromSeed(seedColor: Colors.teal);
+  static final ColorScheme _fallbackDarkScheme = ColorScheme.fromSeed(
+    seedColor: Colors.teal,
+    brightness: Brightness.dark,
+  );
+
+  GolEngine? _ownedEngine;
+  int _localeRevision = 0;
+
+  GolEngine get _activeEngine => widget.engine ?? _ownedEngine!;
+
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+      ),
+    );
+    if (widget.engine == null) {
+      _ownedEngine = GolEngine();
+      unawaited(_ownedEngine!.init());
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant GolApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.engine != widget.engine) {
+      if (widget.engine != null) {
+        _ownedEngine?.dispose();
+        _ownedEngine = null;
+      } else if (_ownedEngine == null) {
+        _ownedEngine = GolEngine();
+        unawaited(_ownedEngine!.init());
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ownedEngine?.dispose();
+    _ownedEngine = null;
+    super.dispose();
+  }
+
+  void _handleLocaleChanged() {
+    if (!mounted) return;
+    setState(() {
+      _localeRevision++;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return HomeScreen();
+    final GolEngine engine = _activeEngine;
+
+    return ChangeNotifierProvider<GolEngine>.value(
+      value: engine,
+      child: DynamicColorBuilder(
+        builder: (
+          ColorScheme? lightDynamic,
+          ColorScheme? darkDynamic,
+        ) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            onGenerateTitle: (BuildContext ctx) {
+              final GolEngine eng = ctx.read<GolEngine>();
+              if (!eng.initialized) return 'Game of Life';
+              final String raw = eng.tr('app_title');
+              return (raw.isEmpty || raw == 'app_title' || raw.startsWith('!'))
+                  ? 'Game of Life'
+                  : raw;
+            },
+            themeMode: ThemeMode.system,
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: lightDynamic ?? _fallbackLightScheme,
+            ),
+            darkTheme: ThemeData(
+              useMaterial3: true,
+              colorScheme: darkDynamic ?? _fallbackDarkScheme,
+            ),
+            home: GolExplorerPage(
+              localeRevision: _localeRevision,
+              onLocaleChanged: _handleLocaleChanged,
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  bool firstBoot = true;
-  bool systemColor = true;
-  bool userDrawn = false;
-  static final ColorScheme _defaultLightColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal);
-  static final ColorScheme _defaultDarkColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.dark);
-  final MaterialStateProperty<Icon?> playicon =
-  MaterialStateProperty.resolveWith<Icon?>(
-        (Set<MaterialState> states) {
-      if (states.contains(MaterialState.selected)) {
-        return const Icon(Icons.play_arrow_rounded);
+/// Adaptive 3-state framed Game of Life workspace:
+/// - State 0 (Fullscreen): edge-to-edge canvas.
+/// - State 1 (Framed Card HUD): rounded simulation card with two non-overlapping
+///   Material 3 stadium HUD rows below the card.
+/// - State 2 (Split Inspector): in-place animated split layout (35%/65% vertical
+///   draggable sheet on compact phones, 50%/50% horizontal on medium, 67%/33%
+///   docked panel on expanded screens).
+class GolExplorerPage extends StatefulWidget {
+  final int localeRevision;
+  final VoidCallback? onLocaleChanged;
+
+  const GolExplorerPage({
+    super.key,
+    this.localeRevision = 0,
+    this.onLocaleChanged,
+  });
+
+  @override
+  State<GolExplorerPage> createState() => _GolExplorerPageState();
+}
+
+class _GolExplorerPageState extends State<GolExplorerPage> {
+  static const Duration _layoutAnimDuration = Duration(milliseconds: 280);
+  static const Curve _layoutAnimCurve = Curves.easeOutCubic;
+  static const MethodChannel _displayChannel =
+      MethodChannel('page.puzzak.gol/display');
+
+  final GlobalKey _canvasKey = GlobalKey();
+  final GlobalKey<NavigatorState> _inspectorNavKey = GlobalKey<NavigatorState>();
+  final ValueNotifier<Size> _viewportNotifier = ValueNotifier<Size>(Size.zero);
+
+  late final GolEngine _engine;
+  bool _showHud = true;
+  bool _inspectorOpen = false;
+  double _compactInspectorFraction = 0.65;
+  bool _isDraggingInspector = false;
+  double _dragStartGlobalY = 0.0;
+  double _dragStartFraction = 0.65;
+  Size _latestViewport = Size.zero;
+  bool _startupHintScheduled = false;
+  bool _initialDeepLinkChecked = false;
+  SharedGolPayload? _pendingSharedPayload;
+
+  @override
+  void initState() {
+    super.initState();
+    _engine = context.read<GolEngine>();
+    _displayChannel.setMethodCallHandler(_handleDisplayChannelCall);
+    if (_engine.initialized) {
+      _scheduleStartupHint();
+    } else {
+      _engine.addListener(_onEngineInitForHint);
+    }
+  }
+
+  void _onEngineInitForHint() {
+    if (!_engine.initialized) return;
+    _engine.removeListener(_onEngineInitForHint);
+    _scheduleStartupHint();
+  }
+
+  void _scheduleStartupHint() {
+    if (_startupHintScheduled) return;
+    _startupHintScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_checkInitialDeepLink());
+      showAppToast(
+        context,
+        _trOr(_engine, 'hud_long_press_hint', 'Long-press Clear to reset board'),
+      );
+    });
+  }
+
+  Future<dynamic> _handleDisplayChannelCall(MethodCall call) async {
+    if (call.method == 'onDeepLink') {
+      _handleIncomingDeepLink(call.arguments as String?);
+    }
+    return null;
+  }
+
+  Future<void> _checkInitialDeepLink() async {
+    if (!mounted || _initialDeepLinkChecked) return;
+    _initialDeepLinkChecked = true;
+    if (kIsWeb) {
+      _handleIncomingDeepLink(Uri.base.toString());
+      return;
+    }
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        final String? initialLink =
+            await _displayChannel.invokeMethod<String>('getInitialDeepLink');
+        if (!mounted) return;
+        if (initialLink != null && initialLink.trim().isNotEmpty) {
+          _handleIncomingDeepLink(initialLink);
+        }
+      } catch (_) {
+        // Ignore platform channel errors on unsupported hosts or tests.
       }
-      return const Icon(Icons.pause_rounded);
-    },
-  );
+    }
+  }
+
+  void _handleIncomingDeepLink(String? raw) {
+    final SharedGolPayload? payload = GolShareLink.tryParse(raw);
+    if (payload == null || !mounted) return;
+    _engine.pause();
+    _engine.setTopology(payload.topology);
+    _engine.setRule(payload.rule);
+    _engine.setPalette(payload.palette);
+    _engine.clear();
+    final int cx = _engine.topology == GridTopology.infinite
+        ? 0
+        : _engine.finiteWidth ~/ 2;
+    final int cy = _engine.topology == GridTopology.infinite
+        ? 0
+        : _engine.finiteHeight ~/ 2;
+    _engine.grid.stamp(
+      payload.cells,
+      cx - (payload.width ~/ 2),
+      cy - (payload.height ~/ 2),
+    );
+    if (_latestViewport.isEmpty) {
+      _engine.resetCamera();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_latestViewport.isEmpty) {
+          _engine.fitToContent(_latestViewport);
+        }
+      });
+    } else {
+      _engine.fitToContent(_latestViewport);
+    }
+    setState(() {
+      _pendingSharedPayload = payload;
+    });
+  }
+
+  @override
+  void dispose() {
+    _engine.removeListener(_onEngineInitForHint);
+    _displayChannel.setMethodCallHandler(null);
+    _viewportNotifier.dispose();
+    super.dispose();
+  }
+
+  String _trOr(GolEngine engine, String key, String fallback) {
+    final String raw = engine.tr(key);
+    if (raw.isEmpty || raw == key || raw.startsWith('!')) {
+      return fallback;
+    }
+    return raw;
+  }
+
+  void _toggleFullscreen() {
+    setState(() {
+      if (_inspectorOpen) {
+        _inspectorOpen = false;
+        _compactInspectorFraction = 0.65;
+        _showHud = false;
+      } else {
+        _showHud = !_showHud;
+      }
+    });
+  }
+
+  void _toggleInspector() {
+    setState(() {
+      _inspectorOpen = !_inspectorOpen;
+      _compactInspectorFraction = 0.65;
+      if (_inspectorOpen) {
+        _showHud = true;
+      }
+    });
+  }
+
+  void _closeInspector() {
+    if (!_inspectorOpen) return;
+    setState(() {
+      _inspectorOpen = false;
+      _compactInspectorFraction = 0.65;
+    });
+  }
+
+  List<(int, int)> _extractCropCells(GolEngine engine) {
+    final (int, int)? start = engine.cropStart;
+    final (int, int)? end = engine.cropEnd;
+    if (start == null || end == null) {
+      return const <(int, int)>[];
+    }
+    final int minX = math.min(start.$1, end.$1);
+    final int maxX = math.max(start.$1, end.$1);
+    final int minY = math.min(start.$2, end.$2);
+    final int maxY = math.max(start.$2, end.$2);
+    return engine.grid.extractRegion(minX, minY, maxX, maxY, maxCells: 16384);
+  }
+
+  Future<void> _handleSaveCrop() async {
+    final List<(int, int)> cells = _extractCropCells(_engine);
+    if (cells.isEmpty) {
+      showAppToast(
+        context,
+        _trOr(_engine, 'crop_empty', 'No live cells in selection'),
+      );
+      return;
+    }
+    await showSavePatternDialog(
+      context,
+      cells: cells,
+      truncated: cells.length >= 16384,
+    );
+  }
+
+  Future<void> _handleCopyCropRle() async {
+    final List<(int, int)> cells = _extractCropCells(_engine);
+    if (cells.isEmpty) {
+      showAppToast(
+        context,
+        _trOr(_engine, 'crop_empty', 'No live cells in selection'),
+      );
+      return;
+    }
+    final RleEncodeResult encoded = RleCodec.encode(
+      cells,
+      rule: _engine.rule.notation,
+    );
+    await Clipboard.setData(ClipboardData(text: encoded.rle));
+    if (!mounted) return;
+    showAppToast(
+      context,
+      _trOr(_engine, 'copied_rle', 'RLE copied to clipboard'),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return DynamicColorBuilder(
-        builder: (dynamicLight, dynamicDark) {
-          final lightScheme = dynamicLight != null
-              ? ColorScheme.fromSeed(
-            seedColor: Color(dynamicLight.primary.toARGB32()),
-          )
-              : _defaultLightColorScheme;
+    final GolEngine engine = context.watch<GolEngine>();
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final EdgeInsets mediaPadding = MediaQuery.paddingOf(context);
+    final bool isFullscreen = !_showHud && !_inspectorOpen;
+    final bool showHudChrome = _showHud && !_inspectorOpen;
+    final Color canvasBg = engine.palette.resolveColors(scheme).background;
 
-          final darkScheme = dynamicDark != null
-              ? ColorScheme.fromSeed(
-            seedColor: Color(dynamicDark.primary.toARGB32()),
-            brightness: Brightness.dark,
-          )
-              : _defaultDarkColorScheme;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) return;
+        if (_inspectorOpen &&
+            (_inspectorNavKey.currentState?.canPop() ?? false)) {
+          _inspectorNavKey.currentState!.pop();
+        } else if (_inspectorOpen) {
+          _closeInspector();
+        } else {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: scheme.surfaceContainerLow,
+        body: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final M3xWindowSizeClass sizeClass =
+                M3xWindowSizeClass.fromWidth(constraints.maxWidth);
+            final EdgeInsets outerPadding = isFullscreen
+                ? EdgeInsets.zero
+                : EdgeInsets.fromLTRB(
+                    mediaPadding.left + 12,
+                    mediaPadding.top + 8,
+                    mediaPadding.right + 12,
+                    mediaPadding.bottom + 10,
+                  );
+            final double innerWidth =
+                (constraints.maxWidth - outerPadding.horizontal)
+                    .clamp(120.0, double.infinity);
+            final double innerHeight =
+                (constraints.maxHeight - outerPadding.vertical)
+                    .clamp(120.0, double.infinity);
 
-          return MaterialApp(
-            theme: ThemeData(
-              colorScheme: lightScheme,
-              useMaterial3: true,
-            ),
-            darkTheme: ThemeData(
-              colorScheme: darkScheme,
-              useMaterial3: true,
-            ),
-        themeMode: ThemeMode.system,
-        debugShowCheckedModeBanner: false,
-        home: Consumer<GameOfLifeProvider>(
-          builder: (context, gameProvider, child) {
-        return Scaffold(
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              showModalBottomSheet<void>(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                enableDrag: true,
-                showDragHandle: true,
-                useSafeArea: true,
-                builder: (BuildContext context) {
-                  return mainSettings();
-                },
-              );
-            },
-            tooltip: "Settings",
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-            isExtended: true,
-            child: const Icon(Icons.tune_rounded),
-          ),
-          body: LayoutBuilder(
-            builder: (context, constraints) {
-              final cellSize = constraints.maxWidth / gameProvider.cols;
-              final rows = (constraints.maxHeight / cellSize).floor();
-              final cols = (constraints.maxWidth / cellSize).floor();
-              final ColorScheme colorScheme = Theme.of(context).colorScheme;
-              WidgetsBinding.instance.addPostFrameCallback((_) async {
-                gameProvider.updateGridSize(rows, cols);
-                if(firstBoot){
-                  if (Platform.isAndroid) {
-                    var androidInfo = await DeviceInfoPlugin().androidInfo;
-                    var sdkInt = androidInfo.version.sdkInt;
-                    if(sdkInt < 31){
-                      SystemChrome.setEnabledSystemUIMode(
-                          SystemUiMode.manual, overlays: [
-                            SystemUiOverlay.top, SystemUiOverlay.bottom
-                      ]);
-                    }else{
-                      SystemChrome.setEnabledSystemUIMode(
-                          SystemUiMode.manual, overlays: [
-                        SystemUiOverlay.top
-                      ]);
-                    }
-                    SystemChrome.setSystemUIOverlayStyle(
-                      SystemUiOverlayStyle(
-                        statusBarColor: Colors.transparent,
-                        statusBarIconBrightness: Brightness.light,
-                        systemNavigationBarColor: Colors.transparent,
-                      ),
-                    );
-                  }
-                  gameProvider.updateLiveColor(colorScheme.primary);
-                  print(colorScheme.primary);
-                  print(colorScheme.primary == colorScheme.primaryContainer);
-                  if(colorScheme.primary == colorScheme.primaryContainer){
-                    gameProvider.updateDeadColor(Colors.black);
-                  }else{
-                    gameProvider.updateDeadColor(colorScheme.primaryContainer);
-                  }
-                  await Future.delayed(const Duration(milliseconds: 200)).then((value){
-                    gameProvider.updateLiveColor(colorScheme.primary);
-                    print(colorScheme.primary);
-                    print(colorScheme.primary == colorScheme.primaryContainer);
-                    if(colorScheme.primary == colorScheme.primaryContainer){
-                      gameProvider.updateLiveColor(Color(0xff00bfb0));
-                      gameProvider.updateDeadColor(Color(0xff005850));
-                    }else{
-                      gameProvider.updateDeadColor(colorScheme.primaryContainer);
-                    }
-                    firstBoot = false;
-                  });
-                }
-              });
-              return Stack(
-                children: [
-                  Container(
-                    width: constraints.maxWidth,
-                    height: constraints.maxHeight,
-                    color: gameProvider.deadColor,
-                  ),
-                  GestureDetector(
-                    onTapDown: (details) {
-                      if(!userDrawn){
-                        userDrawn = true;
-                      }
-                      final cellSize = constraints.maxWidth / gameProvider.cols;
-                      final row = (details.localPosition.dy / cellSize).floor();
-                      final col = (details.localPosition.dx / cellSize).floor();
-                      gameProvider.toggleCell(row, col);
-                    },
-                    onPanUpdate: (details) {
-                      if(!userDrawn){
-                        userDrawn = true;
-                      }
-                      final cellSize = constraints.maxWidth / gameProvider.cols;
-                      final row = (details.localPosition.dy / cellSize).floor();
-                      final col = (details.localPosition.dx / cellSize).floor();
-                      gameProvider.toggleCell(row, col);
-                    },
-                    child: CustomPaint(
-                      size: Size(constraints.maxWidth, constraints.maxHeight),
-                      painter: GridPainter(gameProvider.grid, gameProvider),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 20,
-                    left: 20,
-                    child: Switch(
-                      thumbIcon: playicon,
-                      trackOutlineColor: gameProvider.isPlaying?MaterialStateProperty.all(Theme.of(context).colorScheme.onPrimary):null,
-                      value: gameProvider.isPlaying,
-                      onChanged: (value) {
-                        if (value) {
-                          gameProvider.startGameOfLife();
-                        } else {
-                          gameProvider.stopGameOfLife();
-                        }
+            final Widget canvasCard = TweenAnimationBuilder<double>(
+              tween: Tween<double>(end: isFullscreen ? 0.0 : 24.0),
+              duration: _layoutAnimDuration,
+              curve: _layoutAnimCurve,
+              builder: (BuildContext context, double radius, Widget? child) {
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(radius),
+                  clipBehavior: Clip.antiAlias,
+                  child: child,
+                );
+              },
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: canvasBg),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    GolCanvas(
+                      key: _canvasKey,
+                      onToggleFullscreen: _toggleFullscreen,
+                      onViewportChanged: (Size size) {
+                        _latestViewport = size;
+                        _viewportNotifier.value = size;
                       },
+                      onTapWhenInspectorOpen:
+                          _inspectorOpen ? _closeInspector : null,
+                      inspectorOpen: _inspectorOpen,
+                      onSaveCropRequested: _handleSaveCrop,
+                    ),
+                    if (_pendingSharedPayload != null)
+                      Positioned(
+                        top: (isFullscreen ? mediaPadding.top : 0.0) + 12.0,
+                        left: 12,
+                        right: 12,
+                        child: Center(
+                          child: _SharedPatternPreviewPill(
+                            payload: _pendingSharedPayload!,
+                            onSave: () {
+                              final SharedGolPayload payload =
+                                  _pendingSharedPayload!;
+                              final String fallbackName =
+                                  '${payload.width}×${payload.height} Pattern';
+                              final String? rawName = payload.name?.trim();
+                              engine.saveCustomPattern(
+                                name: (rawName != null && rawName.isNotEmpty)
+                                    ? rawName
+                                    : fallbackName,
+                                cells: payload.cells,
+                              );
+                              showAppToast(
+                                context,
+                                _trOr(
+                                  engine,
+                                  'shared_preview_saved',
+                                  'Pattern saved to library',
+                                ),
+                              );
+                            },
+                            onDismiss: () {
+                              setState(() {
+                                _pendingSharedPayload = null;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+
+            final Widget bottomBarSlot = AnimatedContainer(
+              duration: _layoutAnimDuration,
+              curve: _layoutAnimCurve,
+              height: showHudChrome ? 132.0 : 0.0,
+              clipBehavior: Clip.hardEdge,
+              decoration: const BoxDecoration(),
+              child: OverflowBox(
+                alignment: Alignment.bottomCenter,
+                minHeight: 122.0,
+                maxHeight: 132.0,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: AnimatedOpacity(
+                    opacity: showHudChrome ? 1.0 : 0.0,
+                    duration: _layoutAnimDuration,
+                    curve: _layoutAnimCurve,
+                    child: IgnorePointer(
+                      ignoring: !showHudChrome,
+                      child: ExcludeSemantics(
+                        excluding: !showHudChrome,
+                        child: ExcludeFocus(
+                          excluding: !showHudChrome,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              HudStatusRow(
+                                onOpenPatterns: () => showPatternsSheet(
+                                  context,
+                                  viewportSize: _latestViewport,
+                                ),
+                                onFitToContent: () => showShareGolSheet(
+                                  context,
+                                  engine,
+                                  onStartCrop: () =>
+                                      engine.setActiveTool(CanvasTool.crop),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              HudBottomBar(
+                                onOpenPatterns: () => showPatternsSheet(
+                                  context,
+                                  viewportSize: _latestViewport,
+                                ),
+                                onOpenPalette: () =>
+                                    showPaletteSelectorSheet(context),
+                                onOpenInspector: _toggleInspector,
+                                onSaveCrop: _handleSaveCrop,
+                                onCopyCropRle: _handleCopyCropRle,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  userDrawn?Container():Positioned(
-                    top: 60,
-                    left: 15,
-                    right: 15,
-                    child: Container(
-                      width: constraints.maxWidth,
-                      child: const Card(
+                ),
+              ),
+            );
+
+            final Widget inspectorCard = InspectorSheetDragScope(
+              onDragStart: sizeClass.isCompact
+                  ? (DragStartDetails details) {
+                      _dragStartGlobalY = details.globalPosition.dy;
+                      _dragStartFraction = _compactInspectorFraction;
+                      setState(() => _isDraggingInspector = true);
+                    }
+                  : null,
+              onDragUpdate: sizeClass.isCompact
+                  ? (DragUpdateDetails details) {
+                      final double dy =
+                          details.globalPosition.dy - _dragStartGlobalY;
+                      setState(() {
+                        _compactInspectorFraction =
+                            (_dragStartFraction -
+                                    dy / math.max(1.0, innerHeight))
+                                .clamp(0.20, 1.0);
+                      });
+                    }
+                  : null,
+              onDragEnd: sizeClass.isCompact
+                  ? (DragEndDetails details) {
+                      final double velocity = details.primaryVelocity ?? 0.0;
+                      setState(() {
+                        _isDraggingInspector = false;
+                        if (velocity < -450 ||
+                            _compactInspectorFraction >= 0.80) {
+                          _compactInspectorFraction = 1.0;
+                        } else if (velocity > 450) {
+                          if (_compactInspectorFraction >= 0.72) {
+                            _compactInspectorFraction = 0.65;
+                          } else {
+                            _inspectorOpen = false;
+                            _compactInspectorFraction = 0.65;
+                          }
+                        } else if (_compactInspectorFraction < 0.38) {
+                          _inspectorOpen = false;
+                          _compactInspectorFraction = 0.65;
+                        } else {
+                          _compactInspectorFraction = 0.65;
+                        }
+                      });
+                    }
+                  : null,
+              onDragCancel: sizeClass.isCompact
+                  ? () {
+                      setState(() => _isDraggingInspector = false);
+                    }
+                  : null,
+              child: Material(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(24),
+                clipBehavior: Clip.antiAlias,
+                child: InspectorPanel(
+                  navigatorKey: _inspectorNavKey,
+                  viewportNotifier: _viewportNotifier,
+                  onClose: _closeInspector,
+                  isSheet: sizeClass.isCompact,
+                  onLocaleChanged: widget.onLocaleChanged,
+                ),
+              ),
+            );
+
+            final Widget layoutBody;
+            if (sizeClass.isCompact) {
+              final double openInspectorHeight = innerHeight <= 0
+                  ? 0.0
+                  : (innerHeight * _compactInspectorFraction)
+                      .clamp(0.0, innerHeight);
+              final double topGap =
+                  (_inspectorOpen && _compactInspectorFraction >= 0.98)
+                      ? 0.0
+                      : 10.0;
+              layoutBody = Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Expanded(child: canvasCard),
+                  bottomBarSlot,
+                  AnimatedContainer(
+                    duration: _isDraggingInspector
+                        ? Duration.zero
+                        : _layoutAnimDuration,
+                    curve: _layoutAnimCurve,
+                    height: _inspectorOpen ? openInspectorHeight : 0.0,
+                    clipBehavior: Clip.hardEdge,
+                    decoration: const BoxDecoration(),
+                    child: OverflowBox(
+                      alignment: Alignment.topCenter,
+                      minHeight: openInspectorHeight,
+                      maxHeight: openInspectorHeight,
+                      child: SizedBox(
+                        height: openInspectorHeight,
                         child: Padding(
-                          padding: EdgeInsets.all(15),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Draw on the grid",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18
-                                    ),
-                                  ),
-                                  Text(
-                                    "You can interact with cells, try it!",
-                                  )
-                                ],
+                          padding: EdgeInsets.only(top: topGap),
+                          child: AnimatedOpacity(
+                            opacity: _inspectorOpen ? 1.0 : 0.0,
+                            duration: _layoutAnimDuration,
+                            curve: _layoutAnimCurve,
+                            child: IgnorePointer(
+                              ignoring: !_inspectorOpen,
+                              child: ExcludeSemantics(
+                                excluding: !_inspectorOpen,
+                                child: ExcludeFocus(
+                                  excluding: !_inspectorOpen,
+                                  child: inspectorCard,
+                                ),
                               ),
-                              Icon(Icons.info_outline_rounded),
-                            ],
+                            ),
                           ),
                         ),
                       ),
@@ -228,610 +657,204 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               );
-            },
-          ),
-        );
-      },
-      ),
-      );
-    });
-  }
-}
-
-Future<Color?> _selectColor(BuildContext context, Color currentColor) async {
-  Color selectedColor = currentColor;
-
-  return showDialog<Color>(
-    context: context,
-    builder: (context) => AlertDialog(
-      actionsPadding: const EdgeInsets.only(bottom: 15,right: 15),
-      scrollable: true,
-      content: SingleChildScrollView(
-        child: ColorPicker(
-          pickerColor: currentColor,
-          onColorChanged: (color) => selectedColor = color,
-          enableAlpha: false,
-          portraitOnly: false,
-          pickerAreaHeightPercent: 0.75,
-          hexInputBar: true,
-          displayThumbColor: true,
-          pickerAreaBorderRadius: const BorderRadius.all(Radius.circular(15)),
-        ),
-      ),
-      actions: [
-        TextButton(
-          child: const Text("Cancel"),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        TextButton(
-          child: const Text("Save"),
-          onPressed: () => Navigator.of(context).pop(selectedColor),
-        ),
-      ],
-    ),
-  );
-}
-
-class GridPainter extends CustomPainter {
-  final List<List<bool>> grid;
-  final GameOfLifeProvider provider;
-
-  GridPainter(this.grid, this.provider);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    DateTime startDrawTime = DateTime.now();
-    final paint = Paint()
-      ..strokeWidth = provider.borderThickness * provider.scale
-      ..color = provider.deadColor
-      ..style = PaintingStyle.stroke;
-
-    final cellWidth = size.width / provider.cols;
-    final cellHeight = size.height / provider.rows;
-    final radius = provider.borderRadius * provider.scale;
-
-    for (int y = 0; y < provider.rows; y++) {
-      for (int x = 0; x < provider.cols; x++) {
-        final rect = Rect.fromLTWH(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
-        final rrect = RRect.fromRectAndRadius(rect, Radius.circular(radius));
-
-        final fillPaint = Paint()
-          ..color = grid[y][x] ? provider.liveColor : provider.deadColor
-          ..style = PaintingStyle.fill;
-
-        if (provider.borderRadius > 0) {
-          canvas.drawRRect(rrect, fillPaint);
-        } else {
-          canvas.drawRect(rect, fillPaint);
-        }
-
-        if (provider.borderThickness > 0) {
-          paint.strokeWidth = provider.borderThickness * provider.scale;
-          canvas.drawRect(rect, paint);
-        }
-      }
-    }
-    provider.drawTime = DateTime.now().difference(startDrawTime).inMilliseconds;
-    if(provider.drawTime == 0 || provider.frameTime == 0 || provider.animationSpeed == 0){
-      //skipframe
-    }{
-      provider.fpss.insert(0, provider.drawTime + provider.frameTime + provider.animationSpeed);
-      if(provider.fpss.length > 50){
-        provider.fpss.removeLast();
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
-  }
-}
-
-
-class mainSettings extends StatefulWidget {
-
-  @override
-  _mainSettingsState createState() => _mainSettingsState();
-}
-
-class _mainSettingsState extends State<mainSettings> {
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  String formatDouble(String stringValue) {
-    int lastZero = 0;
-    int dotIndex = stringValue.indexOf('.') + 1;
-    if (double.parse(stringValue) >= 1) {
-      return (double.parse(stringValue).toInt().toString());
-    }
-    if (double.parse(stringValue) >= 0.1) {
-      return (stringValue.substring(0, 3));
-    }
-    for (int i = dotIndex; i < stringValue.length; i++) {
-      if (stringValue[i] == "0") {
-        lastZero = i;
-      } else {
-        break;
-      }
-    }
-
-    return stringValue.substring(0, dotIndex + lastZero);
-  }
-  final MaterialStateProperty<Icon?> thumbIcon =
-  MaterialStateProperty.resolveWith<Icon?>(
-        (Set<MaterialState> states) {
-      if (states.contains(MaterialState.selected)) {
-        return const Icon(Icons.check);
-      }
-      return const Icon(Icons.close);
-    },
-  );
-
-  bool systemColor = true;
-  final ColorScheme _defaultLightColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal);
-  static final ColorScheme _defaultDarkColorScheme = ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.dark);
-  @override
-  Widget build(BuildContext context) {
-    return DynamicColorBuilder(
-        builder: (dynamicLight, dynamicDark) {
-          final lightScheme = dynamicLight != null
-              ? ColorScheme.fromSeed(
-            seedColor: Color(dynamicLight.primary.toARGB32()),
-          )
-              : _defaultLightColorScheme;
-
-          final darkScheme = dynamicDark != null
-              ? ColorScheme.fromSeed(
-            seedColor: Color(dynamicDark.primary.toARGB32()),
-            brightness: Brightness.dark,
-          )
-              : _defaultDarkColorScheme;
-
-          return MaterialApp(
-            theme: ThemeData(
-              colorScheme: lightScheme,
-              useMaterial3: true,
-            ),
-            darkTheme: ThemeData(
-              colorScheme: darkScheme,
-              useMaterial3: true,
-            ),
-        themeMode: ThemeMode.system,
-        debugShowCheckedModeBanner: false,
-        home: Consumer<GameOfLifeProvider>(
-          builder: (context, gameProvider, child) {
-            final MaterialStateProperty<Icon?> playicon =
-            MaterialStateProperty.resolveWith<Icon?>(
-                  (Set<MaterialState> states) {
-                if (states.contains(MaterialState.selected)) {
-                  return const Icon(Icons.play_arrow_rounded);
-                }
-                return const Icon(Icons.pause_rounded);
-              },
-            );
-            final MaterialStateProperty<Icon?> themeicon =
-            MaterialStateProperty.resolveWith<Icon?>(
-                  (Set<MaterialState> states) {
-                if (states.contains(MaterialState.selected)) {
-                  return const Icon(Icons.android_rounded);
-                }
-                return const Icon(Icons.palette_rounded);
-              },
-            );
-            return Scaffold(
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              body: LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
+            } else {
+              final double minWidth = math.min(280.0, innerWidth);
+              final double openInspectorWidth = innerWidth <= 0
+                  ? 0.0
+                  : (sizeClass.isExpanded
+                      ? (innerWidth / 3.0).clamp(minWidth, innerWidth)
+                      : (innerWidth * 0.5).clamp(minWidth, innerWidth));
+              layoutBody = Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Expanded(
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: constraints.maxWidth - 10,
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(15),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Generate GoL",
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18
-                                        ),
-                                      ),
-                                      Text(
-                                        "Play/Pause Game of Life",
-                                      )
-                                    ],
-                                  ),
-                                  Switch(
-                                    thumbIcon: playicon,
-                                    value: gameProvider.isPlaying,
-                                    onChanged: (value) {
-                                      if (value) {
-                                        gameProvider.startGameOfLife();
-                                      } else {
-                                        gameProvider.stopGameOfLife();
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: constraints.maxWidth - 10,
-                          child: Card(
-                            child: Column(
-                              children: [
-                                Padding(
-                                  padding: gameProvider.useSystemColors? const EdgeInsets.all(15):const EdgeInsets.only(
-                                    top:15,left: 15,right: 15
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            "Use system colors",
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 18
-                                            ),
-                                          ),
-                                          Text(
-                                            "Disable to choose cell colors",
-                                          )
-                                        ],
-                                      ),
-                                      Switch(
-                                        thumbIcon: themeicon,
-                                        value: gameProvider.useSystemColors,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            gameProvider.useSystemColors = value;
-                                          });
-                                          if (value) {
-                                            if(Theme.of(context).colorScheme.primary == Theme.of(context).colorScheme.primaryContainer){
-                                              gameProvider.updateLiveColor(Color(0xff00bfb0));
-                                              gameProvider.updateDeadColor(Color(0xff005850));
-                                            }else{
-                                              gameProvider.updateLiveColor(Theme.of(context).colorScheme.primary);
-                                              gameProvider.updateDeadColor(Theme.of(context).colorScheme.primaryContainer);
-                                            }
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                gameProvider.useSystemColors?Container():Row(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(15),
-                                      child: GestureDetector(
-                                        onTap: () async {
-                                          final color = await _selectColor(context, gameProvider.liveColor);
-                                          if (color != null) {
-                                            setState(() {
-                                              gameProvider.updateLiveColor(color);
-                                            });
-                                          }
-                                        },
-                                        child: ColorCard(
-                                          label: 'Live Color',
-                                          color: gameProvider.liveColor,
-                                        ),
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 15,bottom: 15,right: 15),
-                                      child: GestureDetector(
-                                        onTap: () async {
-                                          final color = await _selectColor(context, gameProvider.deadColor);
-                                          if (color != null) {
-                                            gameProvider.updateDeadColor(color);
-                                          }
-                                        },
-                                        child: ColorCard(
-                                          label: 'Dead Color',
-                                          color: gameProvider.deadColor,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: constraints.maxWidth - 10,
-                          child: Card(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.only(
-                                      left: 15, top: 15, right: 15
-                                  ),
-                                  child: Text(
-                                    "Speed",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18
-                                    ),
-                                  ),
-                                ),
-                                Slider(
-                                  value: (1000 - gameProvider.animationSpeed).toDouble(),
-                                  min: 0,
-                                  max: 999,
-                                  divisions: 25,
-                                  inactiveColor: Theme.of(context).colorScheme.primaryContainer,
-                                  label: "${(1000/(gameProvider.animationSpeed).clamp(1, 1000)).floor() } Max FPS",
-                                  onChangeEnd: (value) {
-                                    gameProvider.updateAnimationSpeed((1000 - value).toInt());
-                                  }, onChanged: (double value) {  },
-                                ),
-
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: constraints.maxWidth - 10,
-                          child: Card(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.only(
-                                      left: 15, top: 15, right: 15
-                                  ),
-                                  child: Text(
-                                    "Border radius",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18
-                                    ),
-                                  ),
-                                ),
-                                Slider(
-                                  value: gameProvider.borderRadius,
-                                  min: 0,
-                                  max: 4,
-                                  divisions: 4,
-                                  inactiveColor: Theme.of(context).colorScheme.primaryContainer,
-                                  label: "${(gameProvider.borderRadius*25).toInt().toString()}%",
-                                  onChanged: (value) {
-                                    gameProvider.updateBorderRadius(value);
-                                  },
-                                ),
-
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: constraints.maxWidth - 10,
-                          child: Card(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.only(
-                                      left: 15, top: 15, right: 15
-                                  ),
-                                  child: Text(
-                                    "Border thickness",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18
-                                    ),
-                                  ),
-                                ),
-                                Slider(
-                                  value: gameProvider.borderThickness,
-                                  min: 0,
-                                  max: 5,
-                                  inactiveColor: Theme.of(context).colorScheme.primaryContainer,
-                                  label: "${gameProvider.borderThickness.toString()}px",
-                                  divisions: 10,
-                                  onChanged: (value) {
-                                    gameProvider.updateBorderThickness(value);
-                                  },
-                                ),
-
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: constraints.maxWidth - 10,
-                          child: Card(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.only(
-                                      left: 15, top: 15, right: 15
-                                  ),
-                                  child: Text(
-                                    "Scale",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18
-                                    ),
-                                  ),
-                                ),
-                                Slider(
-                                  value: gameProvider.scale,
-                                  min: 0.5,
-                                  max: 5.0,
-                                  inactiveColor: Theme.of(context).colorScheme.primaryContainer,
-                                  label: "${gameProvider.scale.toString()}x",
-                                  divisions: 9,
-                                  onChanged: (value) {
-                                    gameProvider.updateScale(value);
-                                  },
-                                ),
-
-                              ],
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: constraints.maxWidth - 10,
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(15),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Randomize Grid",
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18
-                                        ),
-                                      ),
-                                      Text(
-                                        "Get random cells on a grid",
-                                      )
-                                    ],
-                                  ),
-                                  FilledButton(
-                                      onPressed: gameProvider.randomizeGrid,
-                                      child: const Icon(Icons.casino_rounded)
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: constraints.maxWidth - 10,
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(15),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Clear Grid",
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18
-                                        ),
-                                      ),
-                                      Text(
-                                        "Make grid empty",
-                                      )
-                                    ],
-                                  ),
-                                  FilledButton(
-                                      onPressed: gameProvider.clearGrid,
-                                      child: const Icon(Icons.border_clear_rounded)
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        gameProvider.isPlaying
-                            ? Container(
-                          width: constraints.maxWidth - 10,
-                          child: Card(
-                            elevation: 2,
-                            child: Padding(
-                              padding: const EdgeInsets.all(15),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    gameProvider.isPlaying?
-                                    "${(1000/(gameProvider.fpss.reduce((a,b) => a + b) / gameProvider.fpss.length)).toInt()} FPS"
-                                        :"Paused",
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18
-                                    ),
-                                  ),
-                                  Text(
-                                    gameProvider.isPlaying
-                                        ?"Generation/Frame/Wait: ${gameProvider.frameTime}/${gameProvider.drawTime}/${gameProvider.animationSpeed} ms"
-                                        : "Unpause the game to see frame times",
-                                  )
-                                ],
-                              ),
-                            ),
-                          ),
-                        ):Container(),
-
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        Expanded(child: canvasCard),
+                        bottomBarSlot,
                       ],
                     ),
-                  );
-                },
-              ),
+                  ),
+                  AnimatedContainer(
+                    duration: _layoutAnimDuration,
+                    curve: _layoutAnimCurve,
+                    width: _inspectorOpen ? openInspectorWidth : 0.0,
+                    clipBehavior: Clip.hardEdge,
+                    decoration: const BoxDecoration(),
+                    child: OverflowBox(
+                      alignment: AlignmentDirectional.centerStart,
+                      minWidth: openInspectorWidth,
+                      maxWidth: openInspectorWidth,
+                      child: SizedBox(
+                        width: openInspectorWidth,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 12),
+                          child: AnimatedOpacity(
+                            opacity: _inspectorOpen ? 1.0 : 0.0,
+                            duration: _layoutAnimDuration,
+                            curve: _layoutAnimCurve,
+                            child: IgnorePointer(
+                              ignoring: !_inspectorOpen,
+                              child: ExcludeSemantics(
+                                excluding: !_inspectorOpen,
+                                child: ExcludeFocus(
+                                  excluding: !_inspectorOpen,
+                                  child: inspectorCard,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return AnimatedPadding(
+              duration: _layoutAnimDuration,
+              curve: _layoutAnimCurve,
+              padding: outerPadding,
+              child: layoutBody,
             );
           },
         ),
-      );
-    });
+      ),
+    );
   }
 }
-class ColorCard extends StatelessWidget {
-  const ColorCard({
-    super.key,
-    required this.label,
-    required this.color,
-    this.size,
+
+class _SharedPatternPreviewPill extends StatefulWidget {
+  final SharedGolPayload payload;
+  final VoidCallback onSave;
+  final VoidCallback onDismiss;
+
+  const _SharedPatternPreviewPill({
+    required this.payload,
+    required this.onSave,
+    required this.onDismiss,
   });
 
-  final String label;
-  final Color color;
-  final Size? size;
+  @override
+  State<_SharedPatternPreviewPill> createState() =>
+      _SharedPatternPreviewPillState();
+}
+
+class _SharedPatternPreviewPillState extends State<_SharedPatternPreviewPill> {
+  bool _saved = false;
+
+  @override
+  void didUpdateWidget(covariant _SharedPatternPreviewPill oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.payload != widget.payload) {
+      _saved = false;
+    }
+  }
+
+  String _trOr(GolEngine engine, String key, String fallback) {
+    final String raw = engine.tr(key);
+    if (raw.isEmpty || raw == key || raw.startsWith('!')) {
+      return fallback;
+    }
+    return raw;
+  }
 
   @override
   Widget build(BuildContext context) {
-    const double fontSize = 14;
-    const Size effectiveSize = Size(125, 50);
+    final GolEngine engine = context.watch<GolEngine>();
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final TextTheme textTheme = Theme.of(context).textTheme;
 
-    return SizedBox(
-      width: effectiveSize.width,
-      height: effectiveSize.height,
-      child: Card(
-        margin: EdgeInsets.zero,
-        clipBehavior: Clip.antiAlias,
-        color: color,
-        child: Center(
-          child: InvertColors(
-            child: Text(
-              label,
-              style: TextStyle(color: color, fontSize: fontSize,fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
+    final String? trimmedName = widget.payload.name?.trim();
+    final String title = (trimmedName != null && trimmedName.isNotEmpty)
+        ? trimmedName
+        : _trOr(engine, 'shared_preview_loaded', 'Shared pattern loaded');
+    final String cellsLabel =
+        _trOr(engine, 'cells_label', 'cells').toLowerCase();
+    final String stats =
+        '${widget.payload.width}×${widget.payload.height} · ${widget.payload.cells.length} $cellsLabel · ${widget.payload.rule.notation}';
+
+    return Material(
+      color: scheme.surfaceContainerHigh.withValues(alpha: 0.94),
+      elevation: 2,
+      shape: StadiumBorder(
+        side: BorderSide(
+          color: scheme.outlineVariant.withValues(alpha: 0.45),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 4, 6, 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.link_rounded,
+              size: 18,
+              color: scheme.primary,
             ),
-          ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    stats,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            IconButton(
+              constraints: const BoxConstraints.tightFor(
+                width: 48,
+                height: 48,
+              ),
+              onPressed: _saved
+                  ? null
+                  : () {
+                      setState(() {
+                        _saved = true;
+                      });
+                      widget.onSave();
+                    },
+              tooltip: _saved
+                  ? _trOr(engine, 'shared_preview_saved', 'Pattern saved')
+                  : _trOr(engine, 'shared_preview_save', 'Save'),
+              icon: Icon(
+                _saved
+                    ? Icons.bookmark_added_rounded
+                    : Icons.bookmark_add_rounded,
+                size: 20,
+                color: scheme.primary,
+              ),
+            ),
+            IconButton(
+              constraints: const BoxConstraints.tightFor(
+                width: 48,
+                height: 48,
+              ),
+              onPressed: widget.onDismiss,
+              tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+              icon: const Icon(Icons.close_rounded, size: 18),
+            ),
+          ],
         ),
       ),
     );
